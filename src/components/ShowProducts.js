@@ -4,6 +4,10 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { show_alert } from '../functions'
 import { jsPDF } from "jspdf";
+import BtnReport from "./BtnReport";
+import BtnAdd from "./BtnAdd";
+import BtnSell from "./BtnSell";
+import ProductTable from "./ProductTable";
 
 const ShowProducts = () => {
 
@@ -334,80 +338,85 @@ const ShowProducts = () => {
     }
   };
 
+  const handleSelectProduct = (e, product) => {
+    if (e.target.checked) {
+      setSelectedProducts((prevState) => [...prevState, product]);
+    } else {
+      setSelectedProducts((prevState) =>
+        prevState.filter((item) => item.id !== product.id)
+      );
+    }
+  };
+
+  const handleEditProduct = (product) => {
+    openModal(2, product);
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (!id) {
+      Swal.fire({
+        title: "Error",
+        text: "ID no válido",
+        icon: "error",
+      });
+      return;
+    }
+
+    Swal.fire({
+      title: "¿Estás seguro?",
+      text: "¡No podrás revertir esta acción!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await axios.delete(`${url}/${id}`);
+          if (response.status === 204) {
+            Swal.fire({
+              title: "Eliminado",
+              text: "Producto eliminado correctamente",
+              icon: "success",
+            });
+            getProducts();
+          }
+        } catch (error) {
+          Swal.fire({
+            title: "Error",
+            text: "Hubo un error en la operación",
+            icon: "error",
+          });
+          console.error("Error en la solicitud:", error.response?.data || error.message);
+        }
+      }
+    });
+  };
+
   return (
     <div className='App'>
       <div className='container-fluid'>
         {/* Botón de Añadir */}
         <div className='row mt-3'>
           <div className='col-md-12 d-flex justify-content-center gap-3'>
-            <button onClick={() => generateReport()} className='btn btn-success'>
-              <i className='fa-solid fa-file-alt'></i> Generar Reporte
-            </button>
-
-            <button onClick={() => openModal(1)} className='btn btn-dark' data-bs-toggle='modal' data-bs-target='#modalProducts'>
-              <i className='fa-solid fa-circle-plus'></i> Añadir
-            </button>
-
-            <button onClick={() => handleSale()} className='btn btn-primary'>
-              <i className='fa-solid fa-cart-shopping'></i> Vender
-            </button>
+            <BtnReport onClick={generateReport} />
+            <BtnAdd onClick={() => openModal(1)} />
+            <BtnSell onClick={handleSale} />
           </div>
         </div>
   
         {/* Tabla de productos */}
         <div className='row mt-3'>
           <div className='col-12'>
-            <div className='table-responsive'>
-              <table className='table table-bordered w-100'>
-                <thead className='table-dark'>
-                  <tr>
-                    <th>Check</th>
-                    <th>#</th>
-                    <th>Sku</th>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th>Precio</th>
-                    <th>Stock</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className='table-group-divider'>
-                  {products.map((product, i) => (
-                    <tr key={product.id}>
-                      <th>
-                        <input 
-                          type="checkbox" 
-                          checked={selectedProducts.some(item => item.id === product.id)} 
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedProducts(prevState => [...prevState, product]); // Agrega el producto seleccionado
-                            } else {
-                              setSelectedProducts(prevState => prevState.filter(item => item.id !== product.id)); // Elimina el producto desmarcado
-                            }
-                          }} 
-                        />
-                      </th>
-                      <td>{i + 1}</td>
-                      <td>{product.sku}</td>
-                      <td>{product.name}</td>
-                      <td>{product.description}</td>
-                      <td>${new Intl.NumberFormat('es-co').format(product.price)}</td>
-                      <td>{product.stock}</td>
-                      <td>
-                        <button onClick={() => openModal(2, product.id, product.sku, product.name, product.description, product.price, product.stock )} 
-                                className='btn btn-warning' data-bs-toggle='modal' data-bs-target='#modalProducts'>
-                          <i className='fa-solid fa-edit'></i>
-                        </button>
-                        &nbsp;
-                        <button onClick={() => deleteProduct(product.id, product.name)} className='btn btn-danger'>
-                          <i className='fa-solid fa-trash'></i>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ProductTable
+              products={products}
+              onEdit={handleEditProduct}
+              onDelete={handleDeleteProduct}
+              onSelectProduct={handleSelectProduct}
+              selectedProducts={selectedProducts}
+            />
           </div>
         </div>
       </div>
